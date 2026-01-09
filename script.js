@@ -47,24 +47,40 @@ function prepareOverlay(num) {
 }
 
 // --- 4. AUDIO LOGIC ---
-function setupVoices() {
-    voices = synth.getVoices();
-    const select = document.getElementById('voice-select');
-    select.innerHTML = voices.map((v, i) => `<option value="${i}">${v.name}</option>`).join('');
-}
-if (speechSynthesis.onvoiceschanged !== undefined) speechSynthesis.onvoiceschanged = setupVoices;
+// --- UPDATED VOICE LOGIC ---
 
-function toggleSpeech() {
-    if (synth.speaking && !synth.paused) { synth.pause(); }
-    else if (synth.paused) { synth.resume(); }
-    else { startSpeech(); }
+function setupVoices() {
+    // Get all available system voices
+    voices = synth.getVoices();
+    
+    const select = document.getElementById('voice-select');
+    // Save the current selection index so it doesn't reset when list reloads
+    const selectedIndex = select.value || 0;
+    
+    select.innerHTML = voices
+        .map((v, i) => `<option value="${i}">${v.name} (${v.lang})</option>`)
+        .join('');
+        
+    select.value = selectedIndex;
+}
+
+// Important: Some browsers need this event to populate the list
+if (speechSynthesis.onvoiceschanged !== undefined) {
+    speechSynthesis.onvoiceschanged = setupVoices;
 }
 
 function startSpeech() {
-    synth.cancel();
+    synth.cancel(); // Stop any current speech
+    
     const text = SCRIPTS[pageNum] || "";
     currentUtterance = new SpeechSynthesisUtterance(text);
-    currentUtterance.voice = voices[document.getElementById('voice-select').value];
+
+    // --- THE FIX: LINK DROPDOWN TO THE UTTERANCE ---
+    const voiceIndex = document.getElementById('voice-select').value;
+    if (voices[voiceIndex]) {
+        currentUtterance.voice = voices[voiceIndex];
+        currentUtterance.lang = voices[voiceIndex].lang; // Match the language
+    }
 
     const spans = document.querySelectorAll('.word-span');
     const bubble = document.getElementById('speech-bubble');
@@ -87,16 +103,8 @@ function startSpeech() {
     currentUtterance.onend = () => {
         document.getElementById('agent-container').classList.remove('speaking');
         bubble.classList.remove('active');
+        document.getElementById('play-btn').textContent = "▶ Play Script";
     };
 
     synth.speak(currentUtterance);
 }
-
-function changePage(delta) {
-    let newPage = pageNum + delta;
-    if (newPage >= 1 && newPage <= pdfDoc.numPages) {
-        synth.cancel(); pageNum = newPage; renderPage(pageNum);
-    }
-}
-
-init();

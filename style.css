@@ -1,0 +1,104 @@
+:root {
+    --primary: #007bff;
+    --bg: #121212;
+    --panel: #1e1e1e;
+}
+
+body {
+    margin: 0;
+    background: var(--bg);
+    font-family: 'Inter', sans-serif;
+    color: white;
+    overflow: hidden; /* Prevents double scrollbars */
+}
+
+.toolbar {
+    height: 70px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 2rem;
+    background: var(--panel);
+    border-bottom: 1px solid #333;
+}
+
+.controls-group { display: flex; align-items: center; gap: 12px; }
+
+button, select {
+    padding: 10px 16px;
+    border: none;
+    border-radius: 8px;
+    background: #333;
+    color: white;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+button:hover { background: #444; }
+.primary-btn { background: var(--primary); font-weight: bold; }
+
+/* RESPONSIVE VIEWER */
+#viewer-wrapper {
+    height: calc(100vh - 70px);
+    overflow: auto; /* This allows scrolling within the PDF area only */
+    display: flex;
+    justify-content: center;
+    padding: 20px;
+}
+
+#pdf-container {
+    position: relative;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    background: white;
+    height: fit-content;
+}
+
+canvas {
+    display: block;
+    max-width: 100%; /* Prevents the image from being cut off */
+    height: auto !important;
+}
+
+/* SCRIPT ANIMATION */
+#script-overlay {
+    position: absolute;
+    top: 5%; left: 5%; right: 5%;
+    pointer-events: none;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.word-span {
+    font-size: 2vw; /* Scales with window size */
+    font-weight: 800;
+    color: rgba(0,0,0,0.05);
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.word-active {
+    color: var(--primary);
+    transform: scale(1.3) translateY(-5px);
+    opacity: 1;
+}
+
+/* AGENT AVATAR */
+#agent-container { position: fixed; bottom: 20px; right: 20px; z-index: 100; }
+#agent-avatar {
+    width: 60px; height: 60px;
+    background: var(--primary);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 30px; cursor: pointer;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+}
+
+.speaking #agent-avatar { animation: pulse 1s infinite alternate; }
+@keyframes pulse { from { transform: scale(1); } to { transform: scale(1.1); } }
+
+#speech-bubble {
+    background: white; color: #333; padding: 10px; border-radius: 10px;
+    margin-bottom: 10px; font-size: 12px; font-weight: bold;
+    opacity: 0; transition: 0.3s; text-align: right;
+}
+#speech-bubble.active { opacity: 1; }

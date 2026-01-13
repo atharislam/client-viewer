@@ -1,110 +1,107 @@
-// --- 1. INCORPORATED SCRIPTS ---
+// Data sourced from Tenectase (yourfile.pdf)
 const SCRIPTS = {
-    1: "Welcome to the presentation. In this first section, we will cover the core objectives of our project and the initial research findings.",
-    2: "Moving on to the technical architecture. Here you can see how our API integrates with the frontend to deliver real-time data.",
-    3: "To conclude, we look at the project timeline and the next steps for deployment. Thank you for your attention!"
+    1: "Every 20 seconds, one Indian suffers a brain stroke. Every minute of delay causes 12 million brain cells and 15 billion synapses to die.",
+    2: "Recognize reliability with the Tenectase Advantage. We pledge to ensure patients get the right treatment at the right time.",
+    3: "Tenectase offers a well-characterized mechanism of action in acute ischemic stroke, featuring 15-fold greater fibrin specificity.",
+    4: "Tenectase is the DCGI-approved thrombolytic for Indian patients. Indicated for treatment within 4.5 hours of stroke initiation.",
+    11: "Dosage instructions: Withdraw 10 ml sterile water, inject into the Tenectase vial, and gently swirl. Administer as a single IV bolus."
 };
 
-// --- 2. INITIALIZATION ---
 const PDF_URL = 'yourfile.pdf'; 
-let pdfDoc = null, pageNum = 1, synth = window.speechSynthesis, currentUtterance = null;
-let voices = [];
+const TRACKING_URL = "PASTE_YOUR_GOOGLE_WEB_APP_URL_HERE"; 
 
+let pdfDoc = null, pageNum = 1, currentScale = 0, synth = window.speechSynthesis, voices = [];
 const pdfjsLib = window['pdfjs-dist/build/pdf'];
-pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
 
 async function init() {
-    pdfDoc = await pdfjsLib.getDocument(PDF_URL).promise;
-    document.getElementById('total-pages').textContent = pdfDoc.numPages;
-    renderPage(pageNum);
-    setupVoices();
+    try {
+        const loadingTask = pdfjsLib.getDocument(PDF_URL);
+        pdfDoc = await loadingTask.promise;
+        document.getElementById('total-pages').textContent = pdfDoc.numPages;
+        renderPage(pageNum);
+        loadVoices();
+        if (speechSynthesis.onvoiceschanged !== undefined) speechSynthesis.onvoiceschanged = loadVoices;
+    } catch (e) { console.error("PDF Fail:", e); alert("Ensure 'yourfile.pdf' is in the folder."); }
 }
 
-// --- 3. RESPONSIVE RENDERING ---
 async function renderPage(num) {
     const page = await pdfDoc.getPage(num);
     const canvas = document.getElementById('pdf-canvas');
     const ctx = canvas.getContext('2d');
     const wrapper = document.getElementById('viewer-wrapper');
 
-    // Calculate scale to fit the width perfectly without cutting
-    const unscaledViewport = page.getViewport({ scale: 1 });
-    const scale = (wrapper.clientWidth - 40) / unscaledViewport.width;
-    const viewport = page.getViewport({ scale: Math.min(scale, 1.3) });
+    const viewport = page.getViewport({ scale: 1 });
+    if (currentScale === 0) {
+        const sX = wrapper.clientWidth / viewport.width;
+        const sY = wrapper.clientHeight / viewport.height;
+        currentScale = Math.min(sX, sY) * 0.95; // Fit with slight padding
+    }
 
-    canvas.height = viewport.height;
-    canvas.width = viewport.width;
-    await page.render({ canvasContext: ctx, viewport }).promise;
+    const scaledViewport = page.getViewport({ scale: currentScale });
+    canvas.height = scaledViewport.height;
+    canvas.width = scaledViewport.width;
 
+    await page.render({ canvasContext: ctx, viewport: scaledViewport }).promise;
     document.getElementById('current-page').textContent = num;
-    prepareOverlay(num);
+    document.getElementById('zoom-percent').textContent = `${Math.round(currentScale * 100)}%`;
+    
+    // TRACKING ACTION
+    trackPageView(num);
 }
 
-function prepareOverlay(num) {
-    const overlay = document.getElementById('script-overlay');
-    const text = SCRIPTS[num] || "No script for this page.";
-    overlay.innerHTML = text.split(' ').map(w => `<span class="word-span">${w}</span>`).join(' ');
-}
+function adjustZoom(delta) { currentScale += delta; renderPage(pageNum); }
+function resetZoom() { currentScale = 0; renderPage(pageNum); }
 
-// --- 4. AUDIO LOGIC ---
-// --- UPDATED VOICE LOGIC ---
-
-function setupVoices() {
-    // Get all available system voices
+function loadVoices() {
     voices = synth.getVoices();
-    
     const select = document.getElementById('voice-select');
-    // Save the current selection index so it doesn't reset when list reloads
-    const selectedIndex = select.value || 0;
-    
-    select.innerHTML = voices
-        .map((v, i) => `<option value="${i}">${v.name} (${v.lang})</option>`)
-        .join('');
-        
-    select.value = selectedIndex;
-}
-
-// Important: Some browsers need this event to populate the list
-if (speechSynthesis.onvoiceschanged !== undefined) {
-    speechSynthesis.onvoiceschanged = setupVoices;
+    // Prioritize Indian English (en-IN)
+    const indianVoices = voices.filter(v => v.lang.includes('en-IN'));
+    const sorted = [...indianVoices, ...voices.filter(v => !v.lang.includes('en-IN'))];
+    select.innerHTML = sorted.map((v, i) => `<option value="${voices.indexOf(v)}">${v.name}</option>`).join('');
+    if (indianVoices.length > 0) select.value = voices.indexOf(indianVoices[0]);
 }
 
 function startSpeech() {
-    synth.cancel(); // Stop any current speech
+    synth.cancel();
+    const utterance = new SpeechSynthesisUtterance(SCRIPTS[pageNum] || "Refer to document.");
+    const vIdx = document.getElementById('voice-select').value;
+    if (voices[vIdx]) utterance.voice = voices[vIdx];
+    utterance.lang = 'en-IN';
     
-    const text = SCRIPTS[pageNum] || "";
-    currentUtterance = new SpeechSynthesisUtterance(text);
-
-    // --- THE FIX: LINK DROPDOWN TO THE UTTERANCE ---
-    const voiceIndex = document.getElementById('voice-select').value;
-    if (voices[voiceIndex]) {
-        currentUtterance.voice = voices[voiceIndex];
-        currentUtterance.lang = voices[voiceIndex].lang; // Match the language
-    }
-
-    const spans = document.querySelectorAll('.word-span');
     const bubble = document.getElementById('speech-bubble');
-    let wordIdx = 0;
-
     document.getElementById('agent-container').classList.add('speaking');
     bubble.classList.add('active');
+    bubble.textContent = "Speaking...";
 
-    currentUtterance.onboundary = (e) => {
-        if (e.name === 'word') {
-            spans.forEach(s => s.classList.remove('word-active'));
-            if (spans[wordIdx]) {
-                spans[wordIdx].classList.add('word-active');
-                bubble.textContent = text.split(' ')[wordIdx];
-                wordIdx++;
-            }
-        }
-    };
-
-    currentUtterance.onend = () => {
+    utterance.onend = () => {
         document.getElementById('agent-container').classList.remove('speaking');
         bubble.classList.remove('active');
-        document.getElementById('play-btn').textContent = "▶ Play Script";
     };
-
-    synth.speak(currentUtterance);
+    synth.speak(utterance);
 }
+
+function changePage(delta) {
+    let target = pageNum + delta;
+    if (target >= 1 && target <= pdfDoc.numPages) {
+        synth.cancel(); pageNum = target; renderPage(pageNum);
+    }
+}
+
+async function trackPageView(num) {
+    if (TRACKING_URL.includes("PASTE_YOUR")) return;
+    fetch(TRACKING_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        body: JSON.stringify({ page: num, timestamp: new Date().toISOString() })
+    });
+}
+
+function toggleSpeech() {
+    if (synth.speaking && !synth.paused) synth.pause();
+    else if (synth.paused) synth.resume();
+    else startSpeech();
+}
+
+init();

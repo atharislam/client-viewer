@@ -2,37 +2,46 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Scripted PDF Viewer</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Tenectase Detailing Portal</title>
     <link rel="stylesheet" href="style.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
 </head>
 <body>
 
-<div class="toolbar">
-    <div class="controls-group">
-        <button onclick="changePage(-pageNum + 1)">🏠 Home</button>
-        <button onclick="changePage(-1)">◀ Prev</button>
-        <span class="page-label">Page <span id="current-page">1</span> / <span id="total-pages">0</span></span>
-        <button onclick="changePage(1)">Next ▶</button>
+<nav class="toolbar">
+    <div class="nav-group">
+        <button onclick="changePage(-pageNum + 1)">🏠</button>
+        <button onclick="changePage(-1)">◀</button>
+        <span class="page-count"><span id="current-page">1</span> / <span id="total-pages">0</span></span>
+        <button onclick="changePage(1)">▶</button>
     </div>
 
-    <div class="controls-group">
-        <select id="voice-select"><option>Loading Voices...</option></select>
+    <div class="zoom-group">
+        <button onclick="adjustZoom(-0.1)">➖</button>
+        <span id="zoom-percent">Fit</span>
+        <button onclick="adjustZoom(0.1)">➕</button>
+        <button onclick="resetZoom()">🔄</button>
+    </div>
+
+    <div class="agent-controls">
+        <select id="voice-select"></select>
         <button id="play-btn" class="primary-btn" onclick="toggleSpeech()">▶ Play Script</button>
     </div>
-</div>
+</nav>
 
 <div id="viewer-wrapper">
     <div id="pdf-container">
         <canvas id="pdf-canvas"></canvas>
-        <div id="script-overlay"></div>
     </div>
 </div>
 
 <div id="agent-container">
-    <div id="speech-bubble">Ready to read!</div>
-    <div id="agent-avatar" onclick="toggleSpeech()">🤖</div>
+    <div id="speech-bubble">Ready</div>
+    <div id="agent-avatar" onclick="toggleSpeech()">
+        <img src="med-rep.png" alt="Medical Rep" class="rep-img">
+        <div class="pulse-ring"></div>
+    </div>
 </div>
 
 <script src="script.js"></script>
